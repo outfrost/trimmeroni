@@ -1,5 +1,10 @@
-use clap::{ArgAction, Parser};
-use std::{fmt, fs::File, io::Write, path::Path, process::{self, Command}};
+use clap::Parser;
+use std::{
+	fs::File,
+	io::Write,
+	path::Path,
+	process::{self, Command},
+};
 
 use clip::InputClip;
 
@@ -18,7 +23,7 @@ struct Args {
 fn main() {
 	let args = Args::parse();
 
-	let mut clips: Vec<InputClip> = args
+	let clips: Vec<InputClip> = args
 		.input_clip_specs
 		.iter()
 		.map(|s| {
@@ -29,14 +34,15 @@ fn main() {
 		})
 		.collect();
 
-//	println!("{:?}", clips);
-
 	let tmp_dir = tempfile::tempdir().unwrap_or_else(|err| {
 		eprintln!("trimmeroni: error: {}", err);
 		process::exit(2)
 	});
 
-	eprintln!("trimmeroni: putting temporary files in {}", tmp_dir.path().display());
+	eprintln!(
+		"trimmeroni: putting temporary files in {}",
+		tmp_dir.path().display()
+	);
 
 	#[rustfmt::skip]
 	let mut concat_list_file = File::create(
@@ -56,16 +62,18 @@ fn main() {
 				"trimmeroni: copying segment {}/{} from {}",
 				seg_idx + 1,
 				clip.segments.len(),
-				&clip.filename);
+				&clip.filename
+			);
 
-			let source_filename = match Path::new(&clip.filename).file_name() {
-				Some(name) => name.to_string_lossy(),
-				_ => {
-					eprintln!("trimmeroni: error: clip source path does not seem to include a file name");
-					trim_successful = false;
-					break;
-				},
-			};
+			let source_filename =
+				match Path::new(&clip.filename).file_name() {
+					Some(name) => name.to_string_lossy(),
+					_ => {
+						eprintln!("trimmeroni: error: clip source path does not seem to include a file name");
+						trim_successful = false;
+						break;
+					},
+				};
 			let temp_filename = format!("{}.{}.tmp.{}.mp4", clip_idx, &source_filename, seg_idx);
 			let temp_path = tmp_dir.path().join(&temp_filename);
 
@@ -103,7 +111,11 @@ fn main() {
 			eprintln!();
 
 			if success {
-				write!(concat_list_file, "file '{}'\n", temp_path.display());
+				if let Err(e) = write!(concat_list_file, "file '{}'\n", temp_path.display()) {
+					eprintln!("trimmeroni: error: cannot write to temporary file: {}", e);
+					trim_successful = false;
+					break;
+				}
 			} else {
 				trim_successful = false;
 				break;
