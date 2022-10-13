@@ -1,6 +1,6 @@
 use clap::{ArgAction, Parser};
 use regex::Regex;
-use std::{fmt, process};
+use std::{fmt, fs::File, path::Path, process};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -45,8 +45,8 @@ impl ClipSegment {
 		}
 
 		Ok(Self {
-			start_timecode: none_if_empty(start),
-			end_timecode: none_if_empty(end),
+			start_timecode: none_if_empty(start.to_owned()),
+			end_timecode: none_if_empty(end.to_owned()),
 		})
 	}
 }
@@ -139,11 +139,30 @@ fn main() {
 		.iter()
 		.map(|s| {
 			InputClip::from_spec(s).unwrap_or_else(|err| {
-				eprintln!("{}", err.desc);
+				eprintln!("trimmeroni: error: {}", err.desc);
 				process::exit(1)
 			})
 		})
 		.collect();
+
+	println!("{:?}", clips);
+
+	let tmp_dir = tempfile::tempdir().unwrap_or_else(|err| {
+		eprintln!("trimmeroni: error: {}", err);
+		process::exit(2)
+	});
+
+	let mut concat_list_file = File::create(tmp_dir.path().join(format!("{}.trimmeroni_concat.txt", args.output_name))).unwrap_or_else(|err| {
+		eprintln!("trimmeroni: error: {}", err);
+		process::exit(2)
+	});
+
+	for clip in &clips {
+		for (idx, segment) in clip.segments.iter().enumerate() {
+			let temp_filename = format!("{}.tmp.{}.mp4", clip.filename.clone(), idx);
+			let path = Path::new(&temp_filename);
+		}
+	}
 }
 
 fn none_if_empty(s: String) -> Option<String> {
