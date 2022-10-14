@@ -44,29 +44,29 @@ fn main() {
 		tmp_dir.path().display()
 	);
 
-	#[rustfmt::skip]
-	let mut concat_list_file = File::create(
-		tmp_dir
-			.path()
-			.join(format!("{}.trimmeroni_concat.txt", args.output_name)),
-	).unwrap_or_else(|err| {
-		eprintln!("trimmeroni: error: {}", err);
-		process::exit(2)
-	});
+	let concat_list_path = tmp_dir
+		.path()
+		.join(format!("{}.trimmeroni_concat.txt", args.output_name));
 
-	let mut trim_successful = true;
+	// trim all clip segments into temporary video files
+	{
+		let mut concat_list_file = File::create(&concat_list_path).unwrap_or_else(|err| {
+			eprintln!("trimmeroni: error: {}", err);
+			process::exit(2)
+		});
 
-	for (clip_idx, clip) in clips.iter().enumerate() {
-		for (seg_idx, segment) in clip.segments.iter().enumerate() {
-			eprintln!(
-				"trimmeroni: copying segment {}/{} from {}",
-				seg_idx + 1,
-				clip.segments.len(),
-				&clip.filename
-			);
+		let mut trim_successful = true;
 
-			let source_filename =
-				match Path::new(&clip.filename).file_name() {
+		for (clip_idx, clip) in clips.iter().enumerate() {
+			for (seg_idx, segment) in clip.segments.iter().enumerate() {
+				eprintln!(
+					"trimmeroni: copying segment {}/{} from {}",
+					seg_idx + 1,
+					clip.segments.len(),
+					&clip.filename
+				);
+
+				let source_filename = match Path::new(&clip.filename).file_name() {
 					Some(name) => name.to_string_lossy(),
 					_ => {
 						eprintln!("trimmeroni: error: clip source path does not seem to include a file name");
@@ -74,60 +74,94 @@ fn main() {
 						break;
 					},
 				};
-			let temp_filename = format!("{}.{}.tmp.{}.mp4", clip_idx, &source_filename, seg_idx);
-			let temp_path = tmp_dir.path().join(&temp_filename);
+				let temp_filename =
+					format!("{}.{}.tmp.{}.mp4", clip_idx, &source_filename, seg_idx);
+				let temp_path = tmp_dir.path().join(&temp_filename);
 
-			let mut command = Command::new("ffmpeg");
-			command.arg("-hide_banner");
-			command.args(["-i", &clip.filename]);
+				let mut command = Command::new("ffmpeg");
+				command.arg("-hide_banner");
+				command.args(["-i", &clip.filename]);
 
-			if let Some(timecode) = &segment.start_timecode {
-				command.args(["-ss", &timecode]);
-			}
+				if let Some(timecode) = &segment.start_timecode {
+					command.args(["-ss", &timecode]);
+				}
 
-			if let Some(timecode) = &segment.end_timecode {
-				command.args(["-to", &timecode]);
-			}
+				if let Some(timecode) = &segment.end_timecode {
+					command.args(["-to", &timecode]);
+				}
 
-			command.args(["-c", "copy"]);
-			command.arg(&temp_path);
+				command.args(["-c", "copy"]);
+				command.arg(&temp_path);
 
-			let mut command_display = format!("\"{}\"", &command.get_program().to_string_lossy());
-			for arg in command.get_args() {
-				command_display += " \"";
-				command_display += &arg.to_string_lossy();
-				command_display += "\"";
-			}
-			eprintln!("trimmeroni: command: {}", command_display);
+				let mut command_display =
+					format!("\"{}\"", &command.get_program().to_string_lossy());
+				for arg in command.get_args() {
+					command_display += " \"";
+					command_display += &arg.to_string_lossy();
+					command_display += "\"";
+				}
+				eprintln!("trimmeroni: command: {}", command_display);
 
-			let success = match command.status() {
-				Ok(status) => status.success(),
-				Err(e) => {
-					eprintln!("trimmeroni: error: failed to execute ffmpeg: {}", e);
-					false
-				},
-			};
+				let success = match command.status() {
+					Ok(status) => status.success(),
+					Err(e) => {
+						eprintln!("trimmeroni: error: failed to execute ffmpeg: {}", e);
+						false
+					},
+				};
 
-			eprintln!();
+				eprintln!();
 
-			if success {
-				if let Err(e) = write!(concat_list_file, "file '{}'\n", temp_path.display()) {
-					eprintln!("trimmeroni: error: cannot write to temporary file: {}", e);
+				if success {
+					if let Err(e) = write!(concat_list_file, "file '{}'\n", temp_path.display()) {
+						eprintln!("trimmeroni: error: cannot write to temporary file: {}", e);
+						trim_successful = false;
+						break;
+					}
+				} else {
 					trim_successful = false;
 					break;
 				}
-			} else {
-				trim_successful = false;
+			}
+			if !trim_successful {
 				break;
 			}
 		}
+
 		if !trim_successful {
-			break;
+			eprintln!("trimmeroni: error: trimming clips failed, stopping");
+			process::exit(3);
 		}
 	}
 
-	if !trim_successful {
-		eprintln!("trimmeroni: error: trimming clips failed, stopping");
+	// concatenate the clips
+	eprintln!(
+		"trimmeroni: concatenating segments into {}",
+		&args.output_name
+	);
+	eprintln!();
+
+	let exit_status = Command::new("ffmpeg")
+		.arg("-hide_banner")
+		.args(["-f", "concat"])
+		.args(["-safe", "0"])
+		.args(["-i", &concat_list_path.to_string_lossy()])
+		.args(["-c", "copy"])
+		.arg(&args.output_name)
+		.status();
+
+	eprintln!();
+
+	let success = match exit_status {
+		Ok(status) => status.success(),
+		Err(e) => {
+			eprintln!("trimmeroni: error: failed to execute ffmpeg: {}", e);
+			false
+		},
+	};
+
+	if !success {
+		eprintln!("trimmeroni: error: concatenating clips failed");
 		process::exit(3);
 	}
 }
