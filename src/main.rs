@@ -51,9 +51,7 @@ fn main() {
 
 	// trim all clip segments into temporary video files
 	{
-		eprintln!("trimmeroni: creating temporary list file");
-		eprintln!("{:?}", tmp_dir.path().exists());
-		eprintln!("{}", concat_list_path.display());
+		eprintln!("trimmeroni: creating temporary list file: {}", concat_list_path.display());
 		let mut concat_list_file = File::create(&concat_list_path).unwrap_or_else(|err| {
 			eprintln!("trimmeroni: error: {}", err);
 			process::exit(2)
