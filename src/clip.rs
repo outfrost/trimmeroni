@@ -114,6 +114,8 @@ impl InputClip {
 			segments.push(ClipSegment::new());
 		}
 
+		eprintln!("{}", &filename.trim_end());
+
 		Ok(Self {
 			filename: filename.trim_end().into(),
 			segments,
