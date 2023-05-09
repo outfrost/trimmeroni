@@ -13,6 +13,27 @@ The only requirement is that you have `ffmpeg` installed on your system, accessi
 
 ## Usage
 
+### Examples
+
+From "cool_gameplay.mkv", grab the segment between 08:34 and 11:02, and save it to "360_noscope.mp4"
+```sh
+trimmeroni -i 'cool_gameplay.mkv @ 08:34 - 11:02' "360_noscope.mp4"
+```
+
+From "camera_footage.mp4", use the segments 04:20 - 04:59, 06:44 - 09:00, and from 14:40 to the end,
+concatenate them, and save the result to "check_this_out.mp4"
+```sh
+trimmeroni -i 'camera_footage.mp4 @ 04:20 - 04:59, 06:44 - 09:00, 14:40 - ' "check_this_out.mp4"
+```
+
+Take 38:08 to 45:35, and 1:02:20 to 1:17:52 from "Day1.mp4", and from the beginning to 29:26 from
+"Day2.mp4", concatenate, and save the result to "Weekend bike adventure.mp4"
+```sh
+trimmeroni -i 'Day1.mp4 @ 38:08 - 45:35, 1:02:20 - 1:17:52' -i 'Day2.mp4 @ - 29:26' "Weekend bike adventure.mp4"
+```
+
+### Details
+
 ```
 Usage: trimmeroni [OPTIONS] <OUTPUT_NAME>
 
@@ -43,25 +64,6 @@ from the input file.
 You can use `-i` many times to use clips from many source files.
 
 Remember to quote your `<INPUT_CLIP_SPECS>`, so that `trimmeroni` receives it as a single string.
-
-### Examples
-
-From "cool_gameplay.mkv", grab the segment between 08:34 and 11:02, and save it to "360_noscope.mp4"
-```sh
-trimmeroni -i 'cool_gameplay.mkv @ 08:34 - 11:02' "360_noscope.mp4"
-```
-
-From "camera_footage.mp4", use the segments 04:20 - 04:59, 06:44 - 09:00, and from 14:40 to the end,
-concatenate them, and save the result to "check_this_out.mp4"
-```sh
-trimmeroni -i 'camera_footage.mp4 @ 04:20 - 04:59, 06:44 - 09:00, 14:40 - ' "check_this_out.mp4"
-```
-
-Take 38:08 to 45:35, and 1:02:20 to 1:17:52 from "Day1.mp4", and from the beginning to 29:26 from
-"Day2.mp4", concatenate, and save the result to "Weekend bike adventure.mp4"
-```sh
-trimmeroni -i 'Day1.mp4 @ 38:08 - 45:35, 1:02:20 - 1:17:52' -i 'Day2.mp4 @ - 29:26' "Weekend bike adventure.mp4"
-```
 
 ## Installing
 
