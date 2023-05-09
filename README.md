@@ -105,3 +105,6 @@ the contributions included in your issue or pull request may be published, used,
 repurposed, and reused without limitation, under the terms of the MIT License (included in
 [LICENSE](LICENSE)), regardless of whether or not the pull request is ever merged, and whether
 or not the issue is ever resolved.
+
+If you would like your name to be included in the list of contributors in the copyright message,
+please edit the LICENSE file as part of your pull request.
