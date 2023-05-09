@@ -1,7 +1,9 @@
 # trimmeroni
 
 This little tool aims to make it easier to cut and concatenate together any number of video clips,
-from any number of input files, into one output file, without reencoding.
+from any number of input files, into one output file, without reencoding. Compared to editing the
+clips using video editing or transcoding software, this preserves original video quality, and
+saves processing time.
 
 It uses the `ffmpeg` program under the hood to copy each requested video segment from the source
 files into a temporary directory, and then concatenate them (insert one after another) into
