@@ -120,8 +120,6 @@ impl InputClip {
 			segments.push(ClipSegment::new());
 		}
 
-		eprintln!("{}", &filename.trim_end());
-
 		Ok(Self {
 			filename: filename.trim_end().into(),
 			segments,
@@ -173,5 +171,4 @@ mod test {
 		assert_eq!(clip.segments[0].start_timecode, Some("01:23".into()));
 		assert_eq!(clip.segments[0].end_timecode, Some("02:46".into()));
 	}
-
 }

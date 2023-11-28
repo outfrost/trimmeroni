@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::{
-	fs::File,
+	fs::OpenOptions,
 	io::Write,
 	path::Path,
 	process::{self, Command},
@@ -18,6 +18,9 @@ struct Args {
 
 	#[arg(short, long = "input-clip")]
 	input_clip_specs: Vec<String>,
+
+	#[arg(short, long, help = "Print additional information while working")]
+	verbose: bool,
 }
 
 fn main() {
@@ -34,28 +37,58 @@ fn main() {
 		})
 		.collect();
 
-	eprintln!("trimmeroni: creating temporary directory");
+	if args.verbose {
+		eprintln!("trimmeroni: creating temporary directory");
+	}
 	let tmp_dir = tempfile::tempdir().unwrap_or_else(|err| {
-		eprintln!("trimmeroni: error: {}", err);
+		eprintln!(
+			"trimmeroni: error: couldn't create temporary directory: {}",
+			err
+		);
 		process::exit(2)
 	});
 
-	eprintln!(
-		"trimmeroni: putting temporary files in {}",
-		tmp_dir.path().display()
-	);
+	if args.verbose {
+		eprintln!(
+			"trimmeroni: putting temporary files in {}",
+			tmp_dir.path().display()
+		);
+	}
 
-	let concat_list_path = tmp_dir
-		.path()
-		.join(format!("{}.trimmeroni_concat.txt", args.output_name));
+	let concat_list_path = tmp_dir.path().join(format!(
+		"{}.trimmeroni_concat.txt",
+		Path::new(&args.output_name)
+			.file_name()
+			.unwrap_or_else(|| {
+				eprintln!(
+					"trimmeroni: error: output path does not seem to include a file name: {}",
+					args.output_name
+				);
+				process::exit(1)
+			})
+			.to_string_lossy()
+	));
 
 	// trim all clip segments into temporary video files
 	{
-		eprintln!("trimmeroni: creating temporary list file: {}", concat_list_path.display());
-		let mut concat_list_file = File::create(&concat_list_path).unwrap_or_else(|err| {
-			eprintln!("trimmeroni: error: {}", err);
-			process::exit(2)
-		});
+		if args.verbose {
+			eprintln!(
+				"trimmeroni: creating temporary list file: {}",
+				concat_list_path.display()
+			);
+		}
+		let mut concat_list_file = OpenOptions::new()
+			.write(true)
+			.create_new(true)
+			.open(&concat_list_path)
+			.unwrap_or_else(|err| {
+				eprintln!(
+					"trimmeroni: error: couldn't create temporary list file {}: {}",
+					concat_list_path.display(),
+					err
+				);
+				process::exit(2)
+			});
 
 		let mut trim_successful = true;
 
@@ -82,6 +115,7 @@ fn main() {
 
 				let mut command = Command::new("ffmpeg");
 				command.arg("-hide_banner");
+				command.args(["-loglevel", if args.verbose { "info" } else { "warning" }]);
 				command.args(["-i", &clip.filename]);
 
 				if let Some(timecode) = &segment.start_timecode {
@@ -102,7 +136,9 @@ fn main() {
 					command_display += &arg.to_string_lossy();
 					command_display += "\"";
 				}
-				eprintln!("trimmeroni: command: {}", command_display);
+				if args.verbose {
+					eprintln!("trimmeroni: command: {}", command_display);
+				}
 
 				let success = match command.status() {
 					Ok(status) => status.success(),
@@ -116,7 +152,10 @@ fn main() {
 
 				if success {
 					if let Err(e) = write!(concat_list_file, "file '{}'\n", temp_path.display()) {
-						eprintln!("trimmeroni: error: cannot write to temporary file: {}", e);
+						eprintln!(
+							"trimmeroni: error: cannot write to temporary list file: {}",
+							e
+						);
 						trim_successful = false;
 						break;
 					}
@@ -145,6 +184,7 @@ fn main() {
 
 	let exit_status = Command::new("ffmpeg")
 		.arg("-hide_banner")
+		.args(["-loglevel", if args.verbose { "info" } else { "warning" }])
 		.args(["-f", "concat"])
 		.args(["-safe", "0"])
 		.args(["-i", &concat_list_path.to_string_lossy()])
