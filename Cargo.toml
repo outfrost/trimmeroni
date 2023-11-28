@@ -1,6 +1,6 @@
 [package]
 name = "trimmeroni"
-version = "0.1.0"
+version = "0.2.1"
 authors = ["outfrost <kotlet.bahn@gmail.com>"]
 edition = "2021"
 description = "Cut and concatenate video clips without reencoding"
