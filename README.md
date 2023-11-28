@@ -42,6 +42,7 @@ Arguments:
 
 Options:
   -i, --input-clip <INPUT_CLIP_SPECS>
+  -v, --verbose                        Print additional information while working
   -h, --help                           Print help information
   -V, --version                        Print version information
 ```
@@ -54,8 +55,8 @@ INPUT_NAME @ TIMECODE - TIMECODE[, TIMECODE - TIMECODE, ...]
 ```
 
 where
-* `INPUT_NAME` is the input file name; if the file name contains "@", use a backslash to escape it
-("\\@"); there is no need to escape spaces;
+* `INPUT_NAME` is the input file name; if the file name contains "@", use another "@" to escape it
+("@@"); there is no need to escape spaces;
 * each `TIMECODE` can be any seek position supported by `ffmpeg` (e.g. in `h:mm:ss` format),
 or empty, meaning either the start or end of the entire video file;
 * "`TIMECODE - TIMECODE,`" can be repeated any number of times in order to grab more than one clip
@@ -64,6 +65,8 @@ from the input file.
 You can use `-i` many times to use clips from many source files.
 
 Remember to quote your `<INPUT_CLIP_SPECS>`, so that `trimmeroni` receives it as a single string.
+
+Use `-v` or `--verbose` to get additional info from `trimmeroni` and `ffmpeg`.
 
 ## Installing
 
