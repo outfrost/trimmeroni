@@ -4,6 +4,7 @@ use regex::Regex;
 #[derive(Debug)]
 enum ParseState {
 	Filename,
+	EscapeCheck,
 	SegmentStart,
 	SegmentEnd,
 }
@@ -61,23 +62,28 @@ impl InputClip {
 		let mut segments: Vec<ClipSegment> = vec![];
 		let mut seg_start = String::new();
 		let mut seg_end = String::new();
-		let mut escape = false;
 
 		for c in spec.chars() {
 			state = match state {
 				ParseState::Filename => {
-					if escape {
-						filename.push(c);
-						escape = false;
-						ParseState::Filename
-					} else if c == '\\' {
-						escape = true;
-						ParseState::Filename
-					} else if c == '@' {
-						ParseState::SegmentStart
+					if c == '@' {
+						ParseState::EscapeCheck
 					} else {
 						filename.push(c);
 						ParseState::Filename
+					}
+				},
+				ParseState::EscapeCheck => {
+					if c == '@' {
+						filename.push(c);
+						ParseState::Filename
+					} else if c.is_whitespace() {
+						ParseState::SegmentStart
+					} else if c == '-' {
+						ParseState::SegmentEnd
+					} else {
+						seg_start.push(c);
+						ParseState::SegmentStart
 					}
 				},
 				ParseState::SegmentStart => {
@@ -121,4 +127,51 @@ impl InputClip {
 			segments,
 		})
 	}
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	#[test]
+	fn escapes() {
+		let clip = InputClip::from_spec("asdf @ -").unwrap();
+		assert_eq!(clip.filename, "asdf");
+		assert_eq!(clip.segments.len(), 1);
+		assert_eq!(clip.segments[0].start_timecode, None);
+		assert_eq!(clip.segments[0].end_timecode, None);
+
+		let clip = InputClip::from_spec("asdf@@12.a@@a").unwrap();
+		assert_eq!(clip.filename, "asdf@12.a@a");
+		assert_eq!(clip.segments.len(), 1);
+		assert_eq!(clip.segments[0].start_timecode, None);
+		assert_eq!(clip.segments[0].end_timecode, None);
+
+		let clip = InputClip::from_spec("asdf@@@@12.a@@a @ 01:23 - 02:46").unwrap();
+		assert_eq!(clip.filename, "asdf@@12.a@a");
+		assert_eq!(clip.segments.len(), 1);
+		assert_eq!(clip.segments[0].start_timecode, Some("01:23".into()));
+		assert_eq!(clip.segments[0].end_timecode, Some("02:46".into()));
+
+		let _clip = InputClip::from_spec("asdf@@12.a@@a @ 01:23 @@ 02:46").unwrap_err();
+
+		let clip = InputClip::from_spec("asdf@-02:46").unwrap();
+		assert_eq!(clip.filename, "asdf");
+		assert_eq!(clip.segments.len(), 1);
+		assert_eq!(clip.segments[0].start_timecode, None);
+		assert_eq!(clip.segments[0].end_timecode, Some("02:46".into()));
+
+		let clip = InputClip::from_spec("asdf@").unwrap();
+		assert_eq!(clip.filename, "asdf");
+		assert_eq!(clip.segments.len(), 1);
+		assert_eq!(clip.segments[0].start_timecode, None);
+		assert_eq!(clip.segments[0].end_timecode, None);
+
+		let clip = InputClip::from_spec("asdf@@@01:23-02:46").unwrap();
+		assert_eq!(clip.filename, "asdf@");
+		assert_eq!(clip.segments.len(), 1);
+		assert_eq!(clip.segments[0].start_timecode, Some("01:23".into()));
+		assert_eq!(clip.segments[0].end_timecode, Some("02:46".into()));
+	}
+
 }
