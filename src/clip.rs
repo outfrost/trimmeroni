@@ -1,4 +1,4 @@
-use crate::util;
+use crate::util::DropEmpty;
 use regex::Regex;
 
 #[derive(Debug)]
@@ -42,8 +42,8 @@ impl ClipSegment {
 		}
 
 		Ok(Self {
-			start_timecode: util::none_if_empty(start.to_owned()),
-			end_timecode: util::none_if_empty(end.to_owned()),
+			start_timecode: start.to_owned().drop_empty(),
+			end_timecode: end.to_owned().drop_empty(),
 		})
 	}
 }
