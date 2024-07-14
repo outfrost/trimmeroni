@@ -66,6 +66,8 @@ You can use `-i` many times to use clips from many source files.
 
 Remember to quote your `<INPUT_CLIP_SPECS>`, so that `trimmeroni` receives it as a single string.
 
+The start of each clip will be snapped to the nearest keyframe before the specified timecode. For recordings from OBS Studio, for example, this may mean that the clip will include a segment from up to 2 seconds earlier.
+
 Use `-v` or `--verbose` to get additional info from `trimmeroni` and `ffmpeg`.
 
 ## Installing
