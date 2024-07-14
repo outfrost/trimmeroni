@@ -116,7 +116,6 @@ fn main() {
 				let mut command = Command::new("ffmpeg");
 				command.arg("-hide_banner");
 				command.args(["-loglevel", if args.verbose { "info" } else { "warning" }]);
-				command.args(["-i", &clip.filename]);
 
 				if let Some(timecode) = &segment.start_timecode {
 					command.args(["-ss", &timecode]);
@@ -126,7 +125,10 @@ fn main() {
 					command.args(["-to", &timecode]);
 				}
 
+				command.arg("-accurate_seek");
+				command.args(["-i", &clip.filename]);
 				command.args(["-c", "copy"]);
+				command.args(["-avoid_negative_ts", "1"]);
 				command.arg(&temp_path);
 
 				let mut command_display =
