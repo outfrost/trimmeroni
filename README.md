@@ -84,7 +84,7 @@ This project uses Rust's stable toolchain, 2021 edition.
 To build locally from source:
 
 ```sh
-git clone https://github.com/outfrost/trimmeroni.git
+git clone https://codeberg.org/outfrost/trimmeroni.git
 cd trimmeroni
 cargo build
 ```
